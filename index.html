@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>Любимый напиток</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Manrope:wght@400;500;700&display=swap">
+<style>
+/* Layout: one narrow column - title, grid of people (single-select), drink list (single-select), who-picked-what. No page switches. */
+:root{
+  --bg:#060508; --surface:rgba(18,14,17,.78); --surface-2:rgba(40,30,34,.72); --line:#2e2a30;
+  --fg:#f1ecee; --muted:#8d8489; --accent:#e0323c; --accent-soft:rgba(224,50,60,.16);
+  --display:"Unbounded","Arial Black",system-ui,sans-serif;
+  --body:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:760px;margin:0 auto;padding-inline:16px;padding-block:36px 64px;display:flex;flex-direction:column;gap:22px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(26px,6vw,40px);line-height:1.1;margin:0;text-wrap:balance}
+h1 em{font-style:normal;color:var(--accent)}
+h2{font-family:var(--display);font-weight:500;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:10px 0 0}
+h2 b{color:var(--fg);font-weight:500}
+h3{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;font-weight:700}
+.sub{color:var(--muted);margin:8px 0 0}
+.sr{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:560px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tile{aspect-ratio:1/1;max-width:100%;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;user-select:none;transition:background .15s,border-color .15s,transform .1s}
+.tile:active{transform:scale(.97)}
+.tile .emo{font-size:34px;line-height:1}
+.tile .nm{display:block;font-weight:700;line-height:1.25;overflow-wrap:anywhere}
+.tile .pick{display:block;font-size:12px;color:var(--muted);margin-top:3px;overflow-wrap:anywhere}
+.sr:checked + .tile{background:var(--accent);border-color:var(--accent)}
+.sr:checked + .tile .pick{color:#fff}
+.sr:checked + .tile .nm{color:#fff}
+.sr:focus-visible + .tile{outline:2px solid var(--fg);outline-offset:2px}
+.note{color:var(--muted);font-size:14px;text-align:center;margin:0}
+.note b{color:var(--fg);font-weight:500}
+.step{display:flex;flex-direction:column;gap:16px}
+.hint{margin:0;padding:12px 14px;border:1px dashed var(--line);border-radius:14px;color:var(--muted);font-size:14px}
+.search input,.own input{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--fg);font:inherit}
+.search input:focus-visible,.own input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.cats{display:flex;flex-direction:column;gap:18px}
+.rows{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line);cursor:pointer;transition:background .12s}
+.row:last-child{border-bottom:0}
+.row input{position:absolute;opacity:0;width:1px;height:1px}
+.row .dot{flex:none;width:18px;height:18px;border-radius:50%;border:2px solid var(--line)}
+.row:has(input:checked){background:var(--accent);color:#fff}
+.row input:checked + .dot{border-color:#fff;background:#fff;box-shadow:inset 0 0 0 3px var(--accent)}
+.row input:focus-visible + .dot{outline:2px solid var(--fg);outline-offset:2px}
+.row[hidden],.cat[hidden]{display:none!important}
+.own{display:flex;gap:8px}
+.own input{min-width:0;flex:1}
+.btn{flex:none;background:var(--accent);color:#fff;border:0;border-radius:12px;padding:0 16px;font:inherit;font-weight:700;cursor:pointer}
+.btn.ghost{background:none;border:1px solid var(--accent);color:var(--fg);padding:8px 12px;align-self:flex-start;font-weight:500;font-size:13px}
+.status{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom,0px));background:var(--surface-2);border:1px solid var(--accent);border-radius:14px;padding:12px 14px;font-size:14px;display:flex;flex-direction:column;gap:8px}
+.status code{font-family:var(--body);background:var(--bg);border-radius:8px;padding:8px 10px;user-select:all;overflow-wrap:anywhere}
+.summary ul{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.summary li{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.summary li .v{color:var(--accent);text-align:right;min-width:0;overflow-wrap:anywhere}
+.summary li.empty .v{color:var(--muted)}
+.count{font-variant-numeric:tabular-nums}
+#f{display:flex;flex-direction:column;gap:14px}
+.block{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:14px}
+.bh{display:flex;align-items:center;gap:10px}
+.bh h2{margin:0;color:var(--fg);font-size:15px;letter-spacing:.06em}
+.num{flex:none;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-family:var(--display);font-size:13px;font-weight:700}
+.block .rows{background:var(--surface-2)}
+.block .search input,.block .own input{background:var(--surface-2)}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+@media (max-width:560px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tile{aspect-ratio:auto;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;padding:8px 10px;border-radius:12px;background:var(--surface-2);min-height:44px}
+.tile .emo{font-size:20px;flex:none}
+.tile .tx{min-width:0}
+.tile .nm{font-size:13px;line-height:1.2}
+.tile .pick{font-size:11px;margin-top:1px}
+.pop{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.popt{display:flex;flex-direction:column;align-items:center;gap:4px;padding:16px 8px;border-radius:14px;background:var(--surface-2);border:1px solid var(--line);cursor:pointer;font-weight:700;transition:background .12s}
+.popt input{position:absolute;opacity:0;width:1px;height:1px}
+.popt .pe{font-size:30px;line-height:1}
+.popt:has(input:checked){background:var(--accent);border-color:var(--accent);color:#fff}
+.popt:has(input:focus-visible){outline:2px solid var(--fg);outline-offset:2px}
+.row{padding:10px 14px}
+.status{bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+.ownbox{border:1px solid var(--accent);border-radius:14px;padding:12px;background:var(--accent-soft)}
+.ownh{color:var(--accent);font-size:13px;margin-bottom:10px}
+.ownbox .own input{border-color:var(--accent)}
+.hero{position:relative;height:380px;overflow:hidden;background:#0b0406}
+.hero .sky{position:absolute;inset:0;background:linear-gradient(180deg,#0b0406 0%,#2a070b 20%,#6d1316 38%,#c3301f 50%,#ff6a3a 57%,#3a0a0e 60%,#060508 100%)}
+.hero .city{position:absolute;left:0;bottom:0;width:100%;height:72%;display:block}
+.hero::after{content:"";position:absolute;left:0;right:0;bottom:0;height:90px;background:linear-gradient(transparent,var(--bg))}
+.hin{position:relative;z-index:1;max-width:760px;margin:0 auto;padding-inline:16px;padding-top:30px;text-shadow:0 2px 16px rgba(0,0,0,.85)}
+@media (min-width:700px){.hero{height:440px} .hin{padding-top:56px}}
+.wrap{position:relative;z-index:1;margin-top:-40px}
+body{background:radial-gradient(120% 60% at 50% 0%,#2a080c 0%,var(--bg) 70%) fixed,var(--bg)}
+.block{-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 10px 40px rgba(0,0,0,.35)}
+.sub{color:#c9bcc0}
+.note{color:#b3a6ab}
+.status{background:#1c1418}
+.tg{color:var(--accent);text-decoration:underline;text-underline-offset:3px;font-weight:700}
+.sendbar{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:3;display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:18px;background:rgba(6,5,8,.85);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.send{width:100%;background:var(--accent);color:#fff;border:0;border-radius:14px;padding:16px;font-family:var(--display);font-weight:700;font-size:16px;cursor:pointer;transition:opacity .15s,transform .1s}
+.send:active{transform:scale(.98)}
+.send:disabled{opacity:.35;cursor:default}
+.send:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+.need{margin:0;text-align:center;font-size:12px;color:var(--muted)}
+.status{position:static}
+.tile .pick{display:none!important}
+.safari,.nojs{position:relative;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top,0px));background:var(--accent);color:#fff;font-size:14px;font-weight:700}
+.safbtn{background:#fff;color:var(--accent);border-radius:999px;padding:8px 14px;text-decoration:none;font-weight:700;white-space:nowrap}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="safari" id="safari" hidden><span>Чтобы все работало, открой страницу в Safari</span><a class="safbtn" href="x-safari-https://dudukchyanv.github.io/godzilla/">Открыть в Safari</a></div>
+<div class="nojs" id="nojs">Если кнопки не нажимаются - открой эту страницу в Safari или Chrome</div>
+<header class="hero">
+  <div class="sky"></div>
+  <svg class="city" viewBox="0 0 4000 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<radialGradient id="sun" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#ffd2a1"/><stop offset=".45" stop-color="#ff5a36"/><stop offset="1" stop-color="#e0323c" stop-opacity="0"/></radialGradient>
+<radialGradient id="fire" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#ffb35c" stop-opacity=".9"/><stop offset="1" stop-color="#e0323c" stop-opacity="0"/></radialGradient>
+<linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a0a0e"/><stop offset=".35" stop-color="#16070a"/><stop offset="1" stop-color="#070608"/></linearGradient>
+<filter id="blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="22"/></filter>
+</defs>
+<circle cx="2000" cy="240" r="320" fill="url(#sun)" opacity=".6"/>
+<circle cx="2000" cy="240" r="100" fill="#ff4a2e"/>
+<g filter="url(#blur)"><ellipse cx="1938" cy="186" rx="151" ry="33" fill="#120708" opacity="0.47"/><ellipse cx="3708" cy="96" rx="169" ry="61" fill="#120708" opacity="0.41"/><ellipse cx="674" cy="198" rx="156" ry="30" fill="#120708" opacity="0.39"/><ellipse cx="1313" cy="179" rx="169" ry="66" fill="#120708" opacity="0.47"/><ellipse cx="1215" cy="179" rx="127" ry="57" fill="#120708" opacity="0.45"/><ellipse cx="3934" cy="233" rx="89" ry="41" fill="#120708" opacity="0.51"/><ellipse cx="2605" cy="225" rx="83" ry="31" fill="#120708" opacity="0.50"/><ellipse cx="2795" cy="248" rx="199" ry="51" fill="#120708" opacity="0.55"/><ellipse cx="384" cy="190" rx="141" ry="61" fill="#120708" opacity="0.54"/><ellipse cx="591" cy="68" rx="107" ry="56" fill="#120708" opacity="0.51"/><ellipse cx="1386" cy="84" rx="190" ry="53" fill="#120708" opacity="0.44"/><ellipse cx="3188" cy="194" rx="150" ry="43" fill="#120708" opacity="0.42"/><ellipse cx="1400" cy="168" rx="112" ry="65" fill="#120708" opacity="0.36"/><ellipse cx="1184" cy="134" rx="125" ry="61" fill="#120708" opacity="0.45"/><ellipse cx="2063" cy="129" rx="191" ry="62" fill="#120708" opacity="0.44"/><ellipse cx="833" cy="227" rx="143" ry="37" fill="#120708" opacity="0.43"/><ellipse cx="1298" cy="242" rx="118" ry="38" fill="#120708" opacity="0.50"/><ellipse cx="2600" cy="82" rx="180" ry="32" fill="#120708" opacity="0.45"/><ellipse cx="2270" cy="163" rx="149" ry="66" fill="#120708" opacity="0.36"/><ellipse cx="1230" cy="87" rx="80" ry="32" fill="#120708" opacity="0.40"/><ellipse cx="3774" cy="181" rx="157" ry="33" fill="#120708" opacity="0.55"/><ellipse cx="3726" cy="199" rx="158" ry="54" fill="#120708" opacity="0.50"/><ellipse cx="2567" cy="232" rx="169" ry="68" fill="#120708" opacity="0.57"/><ellipse cx="339" cy="114" rx="85" ry="70" fill="#120708" opacity="0.46"/><ellipse cx="3123" cy="104" rx="92" ry="41" fill="#120708" opacity="0.57"/><ellipse cx="1726" cy="258" rx="92" ry="30" fill="#120708" opacity="0.44"/><ellipse cx="3369" cy="95" rx="180" ry="49" fill="#120708" opacity="0.49"/><ellipse cx="1056" cy="137" rx="103" ry="56" fill="#120708" opacity="0.36"/><ellipse cx="83" cy="170" rx="152" ry="67" fill="#120708" opacity="0.58"/><ellipse cx="223" cy="187" rx="152" ry="63" fill="#120708" opacity="0.36"/></g>
+<path d="M0,334 L0,313 L0,252 L21,252 L21,204 L25,224 L25,252 L45,252 L53,323 L53,281 L64,281 L64,229 L68,253 L68,281 L91,281 L100,305 L100,233 L132,233 L141,324 L141,189 L179,189 L179,146 L183,138 L183,189 L203,189 L205,307 L205,265 L217,255 L229,266 L240,289 L252,254 L264,250 L273,310 L273,238 L301,238 L306,314 L306,187 L324,166 L342,194 L360,219 L365,306 L365,217 L388,217 L388,171 L392,183 L392,217 L418,217 L425,323 L425,280 L476,280 L481,306 L481,201 L527,201 L528,310 L528,221 L544,221 L544,177 L548,168 L548,221 L558,221 L562,314 L562,219 L580,195 L597,188 L614,237 L632,181 L635,318 L635,249 L646,260 L656,296 L667,290 L678,274 L680,312 L680,219 L732,219 L738,323 L738,263 L751,235 L764,296 L777,257 L781,321 L781,289 L824,289 L833,309 L833,258 L878,258 L889,308 L889,206 L896,169 L903,217 L910,207 L917,163 L920,311 L920,225 L927,232 L934,219 L942,238 L949,231 L954,323 L954,284 L1018,284 L1020,314 L1020,226 L1085,226 L1086,310 L1086,171 L1103,171 L1103,125 L1107,130 L1107,171 L1142,171 L1149,309 L1149,277 L1163,249 L1177,234 L1190,269 L1204,242 L1218,264 L1226,314 L1226,248 L1274,248 L1286,305 L1286,218 L1305,239 L1324,217 L1343,213 L1351,325 L1351,199 L1407,199 L1414,306 L1414,241 L1455,241 L1466,323 L1466,239 L1482,204 L1497,222 L1513,205 L1520,310 L1520,290 L1584,290 L1594,313 L1594,260 L1624,260 L1631,305 L1631,211 L1638,220 L1645,212 L1653,171 L1660,181 L1667,182 L1669,307 L1669,252 L1695,252 L1697,314 L1697,167 L1710,153 L1723,152 L1735,164 L1748,168 L1761,206 L1764,319 L1764,317 L1777,309 L1789,329 L1802,292 L1802,307 L1802,268 L1849,268 L1857,309 L1857,282 L1865,259 L1874,278 L1882,281 L1890,277 L1897,324 L1897,318 L1910,270 L1923,264 L1935,288 L1948,281 L1961,292 L1961,308 L1961,320 L1971,305 L1982,289 L1992,299 L1999,318 L1999,278 L2056,278 L2060,321 L2060,282 L2120,282 L2125,323 L2125,280 L2132,284 L2140,311 L2147,283 L2154,297 L2156,322 L2156,265 L2170,273 L2183,265 L2196,300 L2210,296 L2215,315 L2215,272 L2228,313 L2240,328 L2253,326 L2266,272 L2272,309 L2272,215 L2301,215 L2301,176 L2305,184 L2305,215 L2318,215 L2319,324 L2319,221 L2342,221 L2342,169 L2346,180 L2346,221 L2360,221 L2366,315 L2366,169 L2377,200 L2389,155 L2400,180 L2400,317 L2400,258 L2422,283 L2443,265 L2465,308 L2465,317 L2465,184 L2490,184 L2490,152 L2494,149 L2494,184 L2511,184 L2515,319 L2515,244 L2543,244 L2551,311 L2551,216 L2566,216 L2566,190 L2570,175 L2570,216 L2589,216 L2589,309 L2589,286 L2599,286 L2599,233 L2603,255 L2603,286 L2614,286 L2624,310 L2624,180 L2690,180 L2698,318 L2698,234 L2707,268 L2716,261 L2724,223 L2733,233 L2742,218 L2743,312 L2743,255 L2765,243 L2786,238 L2808,244 L2808,320 L2808,258 L2826,271 L2844,267 L2862,266 L2865,319 L2865,235 L2874,241 L2883,203 L2892,253 L2896,318 L2896,239 L2917,239 L2917,209 L2921,205 L2921,239 L2953,239 L2959,313 L2959,291 L2974,272 L2990,281 L3006,311 L3021,303 L3032,316 L3032,252 L3088,252 L3088,309 L3088,165 L3102,192 L3116,173 L3130,166 L3144,168 L3158,180 L3168,313 L3168,264 L3216,264 L3226,310 L3226,218 L3232,221 L3239,218 L3246,270 L3252,242 L3264,318 L3264,223 L3279,223 L3279,169 L3283,167 L3283,223 L3293,223 L3299,316 L3299,168 L3328,168 L3338,306 L3338,291 L3347,270 L3356,254 L3366,314 L3375,260 L3382,319 L3382,265 L3424,265 L3432,311 L3432,172 L3458,172 L3458,135 L3462,128 L3462,172 L3475,172 L3476,316 L3476,286 L3531,286 L3538,319 L3538,191 L3580,191 L3581,321 L3581,267 L3643,267 L3648,317 L3648,160 L3681,160 L3684,313 L3684,210 L3703,205 L3721,199 L3740,186 L3751,314 L3751,208 L3762,166 L3774,207 L3785,209 L3791,325 L3791,240 L3823,240 L3828,313 L3828,190 L3857,190 L3862,324 L3862,238 L3879,221 L3897,233 L3914,236 L3920,319 L3920,210 L3977,210 L3983,308 L3983,188 L4009,188 L4000,334 Z" fill="#3b0c10"/>
+<g><circle cx="2057" cy="188" r="16" fill="url(#fire)"/><circle cx="2424" cy="243" r="26" fill="url(#fire)"/><circle cx="972" cy="229" r="21" fill="url(#fire)"/><circle cx="150" cy="260" r="15" fill="url(#fire)"/><circle cx="1652" cy="269" r="18" fill="url(#fire)"/><circle cx="2783" cy="227" r="22" fill="url(#fire)"/><circle cx="691" cy="243" r="13" fill="url(#fire)"/><circle cx="3146" cy="298" r="21" fill="url(#fire)"/><circle cx="3957" cy="195" r="26" fill="url(#fire)"/><circle cx="2375" cy="284" r="18" fill="url(#fire)"/><circle cx="2194" cy="210" r="21" fill="url(#fire)"/><circle cx="1084" cy="214" r="21" fill="url(#fire)"/><circle cx="2364" cy="273" r="21" fill="url(#fire)"/><circle cx="1355" cy="290" r="24" fill="url(#fire)"/><circle cx="942" cy="265" r="11" fill="url(#fire)"/><circle cx="1213" cy="246" r="19" fill="url(#fire)"/><circle cx="2618" cy="230" r="10" fill="url(#fire)"/><circle cx="3060" cy="302" r="17" fill="url(#fire)"/><circle cx="611" cy="236" r="23" fill="url(#fire)"/><circle cx="1710" cy="217" r="11" fill="url(#fire)"/><circle cx="540" cy="185" r="17" fill="url(#fire)"/><circle cx="2508" cy="299" r="10" fill="url(#fire)"/><circle cx="222" cy="310" r="21" fill="url(#fire)"/><circle cx="1244" cy="283" r="26" fill="url(#fire)"/><circle cx="1462" cy="253" r="23" fill="url(#fire)"/><circle cx="2390" cy="233" r="14" fill="url(#fire)"/></g>
+<path d="M0,334 L0,312 L0,131 L30,157 L59,101 L89,111 L91,315 L91,209 L106,227 L121,206 L136,214 L151,237 L159,322 L159,191 L183,208 L207,245 L231,210 L238,311 L238,221 L256,228 L273,208 L291,219 L308,240 L326,208 L331,317 L331,206 L343,206 L343,155 L347,157 L347,206 L376,206 L382,319 L382,155 L401,211 L420,183 L440,194 L459,164 L469,305 L469,165 L531,165 L532,313 L532,274 L544,258 L556,221 L567,235 L579,223 L585,310 L585,105 L660,105 L661,311 L661,165 L678,165 L678,131 L682,131 L682,165 L716,165 L724,305 L724,273 L797,273 L798,324 L798,113 L820,88 L841,122 L863,100 L873,305 L873,159 L888,156 L904,185 L919,171 L925,306 L925,263 L934,283 L943,260 L953,265 L962,256 L971,285 L979,318 L979,181 L990,149 L1002,144 L1013,166 L1024,205 L1034,323 L1034,229 L1048,222 L1062,204 L1077,238 L1091,179 L1105,218 L1116,313 L1116,198 L1130,216 L1144,253 L1158,215 L1172,229 L1184,318 L1184,270 L1204,246 L1225,296 L1246,256 L1266,261 L1273,324 L1273,130 L1297,130 L1297,92 L1301,104 L1301,130 L1329,130 L1338,324 L1338,194 L1355,194 L1355,149 L1359,162 L1359,194 L1377,194 L1378,315 L1378,299 L1396,244 L1414,279 L1431,288 L1449,287 L1467,282 L1474,325 L1474,299 L1487,308 L1501,270 L1514,281 L1520,316 L1520,104 L1572,104 L1572,319 L1572,185 L1591,202 L1610,207 L1628,221 L1647,164 L1657,305 L1657,237 L1673,237 L1673,208 L1677,209 L1677,237 L1713,237 L1717,323 L1717,109 L1759,109 L1763,317 L1763,308 L1814,308 L1818,306 L1818,300 L1867,300 L1868,310 L1868,304 L1899,304 L1911,310 L1911,288 L1924,266 L1938,303 L1952,284 L1965,295 L1970,314 L1970,281 L2055,281 L2063,320 L2063,248 L2077,305 L2091,285 L2105,264 L2111,317 L2111,306 L2149,306 L2149,253 L2153,270 L2153,306 L2197,306 L2200,306 L2200,281 L2218,281 L2218,249 L2222,238 L2222,281 L2238,281 L2242,314 L2242,300 L2254,331 L2266,306 L2277,298 L2289,306 L2292,307 L2292,260 L2305,242 L2318,241 L2331,239 L2341,305 L2341,270 L2368,257 L2395,317 L2422,286 L2429,324 L2429,205 L2455,205 L2455,168 L2459,176 L2459,205 L2517,205 L2522,311 L2522,255 L2584,255 L2594,322 L2594,299 L2684,299 L2689,314 L2689,299 L2703,305 L2718,277 L2732,299 L2732,312 L2732,217 L2765,217 L2765,179 L2769,190 L2769,217 L2814,217 L2826,310 L2826,192 L2846,161 L2867,153 L2887,162 L2893,312 L2893,231 L2967,231 L2973,307 L2973,221 L3006,221 L3006,314 L3006,104 L3091,104 L3097,312 L3097,299 L3140,299 L3141,314 L3141,151 L3159,136 L3178,141 L3196,153 L3206,323 L3206,202 L3226,199 L3246,225 L3267,217 L3287,201 L3295,322 L3295,303 L3308,281 L3322,270 L3335,326 L3340,305 L3340,147 L3347,155 L3353,178 L3360,152 L3366,187 L3373,150 L3382,313 L3382,290 L3399,290 L3399,256 L3403,250 L3403,290 L3425,290 L3436,324 L3436,251 L3518,251 L3528,315 L3528,170 L3534,151 L3541,165 L3547,151 L3554,143 L3560,166 L3566,311 L3566,190 L3590,188 L3614,250 L3638,247 L3641,306 L3641,105 L3699,105 L3701,313 L3701,206 L3728,216 L3755,207 L3782,172 L3794,309 L3794,171 L3812,171 L3812,126 L3816,114 L3816,171 L3852,171 L3853,309 L3853,108 L3886,108 L3898,323 L3898,294 L3936,294 L3937,310 L3937,277 L3951,257 L3965,293 L3979,281 L3981,317 L3981,143 L4031,143 L4000,334 Z" fill="#0a0708"/>
+<rect x="0" y="330" width="4000" height="470" fill="url(#sea)"/>
+<g><rect x="1970" y="340" width="59" height="3" rx="1.5" fill="#ff6a3d" opacity="0.75"/><rect x="1918" y="356" width="164" height="3" rx="1.5" fill="#ff6a3d" opacity="0.72"/><rect x="1938" y="372" width="123" height="3" rx="1.5" fill="#ff6a3d" opacity="0.70"/><rect x="1916" y="388" width="168" height="3" rx="1.5" fill="#ff6a3d" opacity="0.67"/><rect x="1952" y="404" width="97" height="3" rx="1.5" fill="#ff6a3d" opacity="0.64"/><rect x="1982" y="420" width="35" height="3" rx="1.5" fill="#ff6a3d" opacity="0.62"/><rect x="1959" y="436" width="82" height="3" rx="1.5" fill="#ff6a3d" opacity="0.59"/><rect x="1948" y="452" width="103" height="3" rx="1.5" fill="#ff6a3d" opacity="0.56"/><rect x="1930" y="468" width="139" height="3" rx="1.5" fill="#ff6a3d" opacity="0.54"/><rect x="1931" y="484" width="138" height="3" rx="1.5" fill="#ff6a3d" opacity="0.51"/><rect x="1961" y="500" width="77" height="3" rx="1.5" fill="#ff6a3d" opacity="0.48"/><rect x="1966" y="516" width="67" height="3" rx="1.5" fill="#ff6a3d" opacity="0.46"/><rect x="1983" y="532" width="34" height="3" rx="1.5" fill="#ff6a3d" opacity="0.43"/><rect x="1959" y="548" width="81" height="3" rx="1.5" fill="#ff6a3d" opacity="0.40"/><rect x="1980" y="564" width="39" height="3" rx="1.5" fill="#ff6a3d" opacity="0.38"/><rect x="1984" y="580" width="32" height="3" rx="1.5" fill="#ff6a3d" opacity="0.35"/><rect x="1990" y="596" width="20" height="3" rx="1.5" fill="#ff6a3d" opacity="0.32"/><rect x="1991" y="612" width="18" height="3" rx="1.5" fill="#ff6a3d" opacity="0.29"/><rect x="1970" y="628" width="60" height="3" rx="1.5" fill="#ff6a3d" opacity="0.27"/><rect x="1989" y="644" width="22" height="3" rx="1.5" fill="#ff6a3d" opacity="0.24"/><rect x="1968" y="660" width="65" height="3" rx="1.5" fill="#ff6a3d" opacity="0.21"/><rect x="1992" y="676" width="16" height="3" rx="1.5" fill="#ff6a3d" opacity="0.19"/><rect x="1976" y="692" width="48" height="3" rx="1.5" fill="#ff6a3d" opacity="0.16"/><rect x="1993" y="708" width="14" height="3" rx="1.5" fill="#ff6a3d" opacity="0.13"/><rect x="1996" y="724" width="9" height="3" rx="1.5" fill="#ff6a3d" opacity="0.11"/><rect x="1987" y="740" width="26" height="3" rx="1.5" fill="#ff6a3d" opacity="0.08"/></g><g><rect x="992" y="580" width="123" height="2" fill="#e0323c" opacity="0.21"/><rect x="3779" y="375" width="76" height="2" fill="#e0323c" opacity="0.21"/><rect x="2922" y="705" width="139" height="2" fill="#e0323c" opacity="0.10"/><rect x="3110" y="393" width="67" height="2" fill="#e0323c" opacity="0.19"/><rect x="2905" y="605" width="88" height="2" fill="#e0323c" opacity="0.19"/><rect x="3645" y="480" width="36" height="2" fill="#e0323c" opacity="0.20"/><rect x="46" y="381" width="31" height="2" fill="#e0323c" opacity="0.23"/><rect x="2812" y="768" width="109" height="2" fill="#e0323c" opacity="0.09"/><rect x="1274" y="509" width="123" height="2" fill="#e0323c" opacity="0.18"/><rect x="3922" y="790" width="136" height="2" fill="#e0323c" opacity="0.16"/><rect x="244" y="511" width="77" height="2" fill="#e0323c" opacity="0.24"/><rect x="2980" y="574" width="90" height="2" fill="#e0323c" opacity="0.20"/><rect x="593" y="758" width="44" height="2" fill="#e0323c" opacity="0.14"/><rect x="2641" y="433" width="110" height="2" fill="#e0323c" opacity="0.22"/><rect x="1953" y="547" width="129" height="2" fill="#e0323c" opacity="0.21"/><rect x="3870" y="489" width="130" height="2" fill="#e0323c" opacity="0.21"/><rect x="1367" y="499" width="65" height="2" fill="#e0323c" opacity="0.09"/><rect x="3989" y="683" width="120" height="2" fill="#e0323c" opacity="0.22"/><rect x="2457" y="520" width="107" height="2" fill="#e0323c" opacity="0.20"/><rect x="63" y="775" width="49" height="2" fill="#e0323c" opacity="0.18"/><rect x="1264" y="649" width="84" height="2" fill="#e0323c" opacity="0.25"/><rect x="1008" y="542" width="79" height="2" fill="#e0323c" opacity="0.20"/><rect x="2464" y="744" width="59" height="2" fill="#e0323c" opacity="0.22"/><rect x="1160" y="702" width="30" height="2" fill="#e0323c" opacity="0.13"/><rect x="1097" y="566" width="50" height="2" fill="#e0323c" opacity="0.18"/><rect x="3342" y="740" width="130" height="2" fill="#e0323c" opacity="0.09"/><rect x="3412" y="422" width="133" height="2" fill="#e0323c" opacity="0.23"/><rect x="2342" y="425" width="65" height="2" fill="#e0323c" opacity="0.25"/><rect x="3265" y="763" width="100" height="2" fill="#e0323c" opacity="0.20"/><rect x="3742" y="605" width="74" height="2" fill="#e0323c" opacity="0.17"/><rect x="2211" y="633" width="92" height="2" fill="#e0323c" opacity="0.22"/><rect x="820" y="753" width="126" height="2" fill="#e0323c" opacity="0.20"/><rect x="958" y="508" width="107" height="2" fill="#e0323c" opacity="0.09"/><rect x="1619" y="588" width="120" height="2" fill="#e0323c" opacity="0.12"/><rect x="1043" y="650" width="126" height="2" fill="#e0323c" opacity="0.08"/><rect x="1576" y="585" width="99" height="2" fill="#e0323c" opacity="0.09"/><rect x="3303" y="531" width="128" height="2" fill="#e0323c" opacity="0.09"/><rect x="1630" y="646" width="96" height="2" fill="#e0323c" opacity="0.23"/><rect x="3625" y="776" width="96" height="2" fill="#e0323c" opacity="0.13"/><rect x="2073" y="651" width="55" height="2" fill="#e0323c" opacity="0.11"/><rect x="787" y="397" width="53" height="2" fill="#e0323c" opacity="0.22"/><rect x="1187" y="535" width="103" height="2" fill="#e0323c" opacity="0.18"/><rect x="1648" y="749" width="96" height="2" fill="#e0323c" opacity="0.23"/><rect x="1008" y="372" width="93" height="2" fill="#e0323c" opacity="0.14"/><rect x="434" y="540" width="110" height="2" fill="#e0323c" opacity="0.16"/><rect x="334" y="429" width="70" height="2" fill="#e0323c" opacity="0.18"/><rect x="1412" y="493" width="96" height="2" fill="#e0323c" opacity="0.18"/><rect x="385" y="367" width="56" height="2" fill="#e0323c" opacity="0.25"/><rect x="3547" y="639" width="92" height="2" fill="#e0323c" opacity="0.18"/><rect x="874" y="483" width="129" height="2" fill="#e0323c" opacity="0.13"/><rect x="397" y="578" width="128" height="2" fill="#e0323c" opacity="0.18"/><rect x="2493" y="417" width="62" height="2" fill="#e0323c" opacity="0.22"/><rect x="1387" y="452" width="53" height="2" fill="#e0323c" opacity="0.14"/><rect x="112" y="376" width="34" height="2" fill="#e0323c" opacity="0.17"/><rect x="3566" y="711" width="88" height="2" fill="#e0323c" opacity="0.16"/><rect x="3463" y="382" width="140" height="2" fill="#e0323c" opacity="0.18"/><rect x="1627" y="411" width="120" height="2" fill="#e0323c" opacity="0.24"/><rect x="1053" y="513" width="102" height="2" fill="#e0323c" opacity="0.12"/><rect x="367" y="692" width="94" height="2" fill="#e0323c" opacity="0.15"/><rect x="1836" y="785" width="50" height="2" fill="#e0323c" opacity="0.14"/><rect x="963" y="719" width="58" height="2" fill="#e0323c" opacity="0.11"/><rect x="3857" y="481" width="75" height="2" fill="#e0323c" opacity="0.09"/><rect x="2264" y="364" width="137" height="2" fill="#e0323c" opacity="0.24"/><rect x="1056" y="752" width="95" height="2" fill="#e0323c" opacity="0.20"/><rect x="2648" y="739" width="91" height="2" fill="#e0323c" opacity="0.09"/><rect x="593" y="512" width="126" height="2" fill="#e0323c" opacity="0.08"/><rect x="814" y="696" width="125" height="2" fill="#e0323c" opacity="0.13"/><rect x="2422" y="575" width="127" height="2" fill="#e0323c" opacity="0.19"/><rect x="1928" y="515" width="77" height="2" fill="#e0323c" opacity="0.12"/><rect x="508" y="541" width="91" height="2" fill="#e0323c" opacity="0.14"/><rect x="1807" y="472" width="133" height="2" fill="#e0323c" opacity="0.10"/><rect x="2775" y="356" width="89" height="2" fill="#e0323c" opacity="0.20"/><rect x="799" y="759" width="34" height="2" fill="#e0323c" opacity="0.11"/><rect x="3411" y="462" width="39" height="2" fill="#e0323c" opacity="0.24"/><rect x="3550" y="541" width="125" height="2" fill="#e0323c" opacity="0.10"/><rect x="1831" y="399" width="79" height="2" fill="#e0323c" opacity="0.22"/><rect x="2573" y="388" width="87" height="2" fill="#e0323c" opacity="0.25"/><rect x="1321" y="771" width="59" height="2" fill="#e0323c" opacity="0.16"/><rect x="2573" y="537" width="48" height="2" fill="#e0323c" opacity="0.14"/><rect x="3014" y="379" width="53" height="2" fill="#e0323c" opacity="0.20"/><rect x="2266" y="424" width="86" height="2" fill="#e0323c" opacity="0.23"/><rect x="1091" y="564" width="82" height="2" fill="#e0323c" opacity="0.12"/><rect x="104" y="488" width="103" height="2" fill="#e0323c" opacity="0.22"/><rect x="1370" y="761" width="51" height="2" fill="#e0323c" opacity="0.12"/><rect x="447" y="512" width="88" height="2" fill="#e0323c" opacity="0.23"/><rect x="467" y="428" width="95" height="2" fill="#e0323c" opacity="0.09"/><rect x="3666" y="753" width="115" height="2" fill="#e0323c" opacity="0.24"/><rect x="2293" y="594" width="136" height="2" fill="#e0323c" opacity="0.13"/><rect x="1055" y="736" width="55" height="2" fill="#e0323c" opacity="0.25"/><rect x="1769" y="483" width="60" height="2" fill="#e0323c" opacity="0.24"/><rect x="399" y="549" width="67" height="2" fill="#e0323c" opacity="0.15"/><rect x="664" y="379" width="136" height="2" fill="#e0323c" opacity="0.20"/><rect x="1202" y="423" width="111" height="2" fill="#e0323c" opacity="0.08"/><rect x="3305" y="609" width="73" height="2" fill="#e0323c" opacity="0.17"/><rect x="1814" y="350" width="131" height="2" fill="#e0323c" opacity="0.22"/><rect x="2156" y="496" width="53" height="2" fill="#e0323c" opacity="0.14"/><rect x="166" y="559" width="57" height="2" fill="#e0323c" opacity="0.13"/><rect x="740" y="420" width="137" height="2" fill="#e0323c" opacity="0.11"/><rect x="3155" y="467" width="121" height="2" fill="#e0323c" opacity="0.11"/><rect x="2460" y="390" width="136" height="2" fill="#e0323c" opacity="0.09"/><rect x="2492" y="724" width="93" height="2" fill="#e0323c" opacity="0.21"/><rect x="718" y="455" width="47" height="2" fill="#e0323c" opacity="0.18"/><rect x="2898" y="671" width="133" height="2" fill="#e0323c" opacity="0.11"/><rect x="1261" y="453" width="31" height="2" fill="#e0323c" opacity="0.09"/><rect x="3001" y="616" width="82" height="2" fill="#e0323c" opacity="0.22"/><rect x="3752" y="378" width="96" height="2" fill="#e0323c" opacity="0.22"/><rect x="1373" y="494" width="137" height="2" fill="#e0323c" opacity="0.19"/><rect x="3873" y="602" width="41" height="2" fill="#e0323c" opacity="0.08"/><rect x="3728" y="740" width="91" height="2" fill="#e0323c" opacity="0.10"/><rect x="2725" y="486" width="61" height="2" fill="#e0323c" opacity="0.11"/><rect x="3406" y="537" width="34" height="2" fill="#e0323c" opacity="0.11"/><rect x="1520" y="644" width="106" height="2" fill="#e0323c" opacity="0.23"/><rect x="1458" y="616" width="87" height="2" fill="#e0323c" opacity="0.24"/><rect x="292" y="411" width="75" height="2" fill="#e0323c" opacity="0.20"/><rect x="3344" y="774" width="140" height="2" fill="#e0323c" opacity="0.24"/><rect x="3191" y="714" width="78" height="2" fill="#e0323c" opacity="0.18"/><rect x="3678" y="381" width="67" height="2" fill="#e0323c" opacity="0.23"/><rect x="3907" y="724" width="93" height="2" fill="#e0323c" opacity="0.16"/><rect x="105" y="621" width="132" height="2" fill="#e0323c" opacity="0.17"/><rect x="84" y="474" width="41" height="2" fill="#e0323c" opacity="0.12"/><rect x="747" y="435" width="43" height="2" fill="#e0323c" opacity="0.13"/><rect x="2274" y="768" width="33" height="2" fill="#e0323c" opacity="0.08"/><rect x="3794" y="707" width="124" height="2" fill="#e0323c" opacity="0.11"/><rect x="72" y="778" width="106" height="2" fill="#e0323c" opacity="0.19"/><rect x="1900" y="617" width="60" height="2" fill="#e0323c" opacity="0.20"/><rect x="421" y="529" width="42" height="2" fill="#e0323c" opacity="0.20"/><rect x="185" y="489" width="45" height="2" fill="#e0323c" opacity="0.16"/><rect x="2399" y="606" width="127" height="2" fill="#e0323c" opacity="0.13"/><rect x="499" y="412" width="81" height="2" fill="#e0323c" opacity="0.23"/><rect x="2218" y="653" width="59" height="2" fill="#e0323c" opacity="0.23"/><rect x="603" y="692" width="103" height="2" fill="#e0323c" opacity="0.16"/><rect x="1624" y="434" width="135" height="2" fill="#e0323c" opacity="0.08"/><rect x="2600" y="549" width="118" height="2" fill="#e0323c" opacity="0.15"/><rect x="3439" y="658" width="97" height="2" fill="#e0323c" opacity="0.09"/><rect x="3975" y="376" width="129" height="2" fill="#e0323c" opacity="0.14"/><rect x="1641" y="473" width="137" height="2" fill="#e0323c" opacity="0.14"/><rect x="1784" y="781" width="102" height="2" fill="#e0323c" opacity="0.22"/><rect x="3738" y="514" width="134" height="2" fill="#e0323c" opacity="0.15"/><rect x="2298" y="377" width="71" height="2" fill="#e0323c" opacity="0.17"/><rect x="3923" y="698" width="75" height="2" fill="#e0323c" opacity="0.12"/><rect x="1729" y="689" width="110" height="2" fill="#e0323c" opacity="0.08"/><rect x="446" y="621" width="53" height="2" fill="#e0323c" opacity="0.09"/><rect x="1773" y="452" width="94" height="2" fill="#e0323c" opacity="0.19"/><rect x="923" y="421" width="83" height="2" fill="#e0323c" opacity="0.24"/><rect x="3180" y="582" width="111" height="2" fill="#e0323c" opacity="0.09"/><rect x="3622" y="370" width="34" height="2" fill="#e0323c" opacity="0.23"/><rect x="2543" y="486" width="116" height="2" fill="#e0323c" opacity="0.19"/><rect x="2573" y="627" width="133" height="2" fill="#e0323c" opacity="0.24"/><rect x="2544" y="401" width="62" height="2" fill="#e0323c" opacity="0.10"/><rect x="55" y="572" width="60" height="2" fill="#e0323c" opacity="0.24"/><rect x="1177" y="407" width="69" height="2" fill="#e0323c" opacity="0.14"/><rect x="683" y="411" width="37" height="2" fill="#e0323c" opacity="0.18"/><rect x="3916" y="613" width="64" height="2" fill="#e0323c" opacity="0.09"/><rect x="2417" y="623" width="48" height="2" fill="#e0323c" opacity="0.15"/><rect x="2095" y="417" width="67" height="2" fill="#e0323c" opacity="0.24"/><rect x="2364" y="497" width="65" height="2" fill="#e0323c" opacity="0.12"/><rect x="359" y="729" width="99" height="2" fill="#e0323c" opacity="0.13"/><rect x="1860" y="662" width="118" height="2" fill="#e0323c" opacity="0.18"/><rect x="2663" y="547" width="55" height="2" fill="#e0323c" opacity="0.17"/><rect x="1502" y="585" width="100" height="2" fill="#e0323c" opacity="0.13"/><rect x="1957" y="590" width="134" height="2" fill="#e0323c" opacity="0.13"/><rect x="992" y="520" width="58" height="2" fill="#e0323c" opacity="0.11"/><rect x="2236" y="546" width="104" height="2" fill="#e0323c" opacity="0.15"/><rect x="3785" y="530" width="50" height="2" fill="#e0323c" opacity="0.23"/><rect x="977" y="515" width="101" height="2" fill="#e0323c" opacity="0.14"/><rect x="1105" y="495" width="57" height="2" fill="#e0323c" opacity="0.13"/><rect x="3162" y="361" width="50" height="2" fill="#e0323c" opacity="0.17"/><rect x="2481" y="796" width="74" height="2" fill="#e0323c" opacity="0.15"/><rect x="254" y="614" width="79" height="2" fill="#e0323c" opacity="0.22"/><rect x="1450" y="726" width="127" height="2" fill="#e0323c" opacity="0.10"/></g>
+<g><circle cx="836" cy="133" r="3" fill="#ff8a3d" opacity="0.44"/><circle cx="57" cy="279" r="2" fill="#ff8a3d" opacity="0.74"/><circle cx="1846" cy="64" r="1.5" fill="#ff8a3d" opacity="0.70"/><circle cx="3568" cy="210" r="2.5" fill="#ff8a3d" opacity="0.57"/><circle cx="1082" cy="287" r="1.5" fill="#ff8a3d" opacity="0.38"/><circle cx="3362" cy="183" r="2.5" fill="#ff8a3d" opacity="0.68"/><circle cx="2369" cy="153" r="3" fill="#ff8a3d" opacity="0.49"/><circle cx="3700" cy="40" r="1.5" fill="#ff8a3d" opacity="0.38"/><circle cx="103" cy="143" r="2" fill="#ff8a3d" opacity="0.48"/><circle cx="239" cy="273" r="1.5" fill="#ff8a3d" opacity="0.36"/><circle cx="2256" cy="208" r="2" fill="#ff8a3d" opacity="0.43"/><circle cx="817" cy="172" r="3" fill="#ff8a3d" opacity="0.80"/><circle cx="715" cy="170" r="2.5" fill="#ff8a3d" opacity="0.39"/><circle cx="2563" cy="52" r="3" fill="#ff8a3d" opacity="0.74"/><circle cx="26" cy="136" r="3" fill="#ff8a3d" opacity="0.76"/><circle cx="1905" cy="60" r="3" fill="#ff8a3d" opacity="0.45"/><circle cx="431" cy="106" r="2" fill="#ff8a3d" opacity="0.70"/><circle cx="504" cy="125" r="2.5" fill="#ff8a3d" opacity="0.74"/><circle cx="1089" cy="202" r="3" fill="#ff8a3d" opacity="0.73"/><circle cx="3757" cy="173" r="2.5" fill="#ff8a3d" opacity="0.51"/><circle cx="3803" cy="287" r="2" fill="#ff8a3d" opacity="0.40"/><circle cx="2078" cy="43" r="2" fill="#ff8a3d" opacity="0.49"/><circle cx="967" cy="255" r="2" fill="#ff8a3d" opacity="0.87"/><circle cx="3056" cy="274" r="2.5" fill="#ff8a3d" opacity="0.46"/><circle cx="1592" cy="124" r="2" fill="#ff8a3d" opacity="0.56"/><circle cx="3489" cy="201" r="3" fill="#ff8a3d" opacity="0.61"/><circle cx="2173" cy="218" r="1.5" fill="#ff8a3d" opacity="0.82"/><circle cx="1790" cy="284" r="2" fill="#ff8a3d" opacity="0.66"/><circle cx="1260" cy="242" r="2" fill="#ff8a3d" opacity="0.57"/><circle cx="2397" cy="59" r="2" fill="#ff8a3d" opacity="0.43"/><circle cx="110" cy="68" r="1.5" fill="#ff8a3d" opacity="0.69"/><circle cx="662" cy="128" r="2" fill="#ff8a3d" opacity="0.74"/><circle cx="126" cy="50" r="2" fill="#ff8a3d" opacity="0.73"/><circle cx="2596" cy="50" r="1.5" fill="#ff8a3d" opacity="0.76"/><circle cx="269" cy="259" r="2.5" fill="#ff8a3d" opacity="0.46"/><circle cx="3909" cy="249" r="1.5" fill="#ff8a3d" opacity="0.83"/><circle cx="3095" cy="274" r="3" fill="#ff8a3d" opacity="0.41"/><circle cx="842" cy="92" r="1.5" fill="#ff8a3d" opacity="0.37"/><circle cx="3888" cy="257" r="1.5" fill="#ff8a3d" opacity="0.80"/><circle cx="2586" cy="201" r="2.5" fill="#ff8a3d" opacity="0.61"/><circle cx="543" cy="65" r="2" fill="#ff8a3d" opacity="0.51"/><circle cx="1378" cy="148" r="2.5" fill="#ff8a3d" opacity="0.36"/><circle cx="1051" cy="278" r="2.5" fill="#ff8a3d" opacity="0.38"/><circle cx="3112" cy="134" r="2.5" fill="#ff8a3d" opacity="0.77"/><circle cx="2465" cy="168" r="3" fill="#ff8a3d" opacity="0.82"/><circle cx="2532" cy="230" r="1.5" fill="#ff8a3d" opacity="0.78"/><circle cx="127" cy="151" r="1.5" fill="#ff8a3d" opacity="0.54"/><circle cx="2886" cy="52" r="2" fill="#ff8a3d" opacity="0.74"/><circle cx="3390" cy="63" r="2.5" fill="#ff8a3d" opacity="0.44"/><circle cx="5" cy="174" r="2" fill="#ff8a3d" opacity="0.51"/><circle cx="3074" cy="290" r="1.5" fill="#ff8a3d" opacity="0.35"/><circle cx="2010" cy="64" r="3" fill="#ff8a3d" opacity="0.73"/><circle cx="3380" cy="87" r="3" fill="#ff8a3d" opacity="0.68"/><circle cx="3920" cy="252" r="2.5" fill="#ff8a3d" opacity="0.67"/><circle cx="650" cy="112" r="2" fill="#ff8a3d" opacity="0.87"/><circle cx="948" cy="167" r="2" fill="#ff8a3d" opacity="0.41"/><circle cx="2607" cy="236" r="1.5" fill="#ff8a3d" opacity="0.62"/><circle cx="2855" cy="183" r="1.5" fill="#ff8a3d" opacity="0.70"/><circle cx="1456" cy="64" r="3" fill="#ff8a3d" opacity="0.86"/><circle cx="3652" cy="267" r="1.5" fill="#ff8a3d" opacity="0.58"/><circle cx="2645" cy="46" r="2.5" fill="#ff8a3d" opacity="0.46"/><circle cx="1078" cy="149" r="2" fill="#ff8a3d" opacity="0.56"/><circle cx="3620" cy="201" r="2" fill="#ff8a3d" opacity="0.87"/><circle cx="519" cy="176" r="1.5" fill="#ff8a3d" opacity="0.54"/><circle cx="1338" cy="173" r="2" fill="#ff8a3d" opacity="0.83"/><circle cx="1844" cy="209" r="2.5" fill="#ff8a3d" opacity="0.44"/><circle cx="1797" cy="216" r="2.5" fill="#ff8a3d" opacity="0.67"/><circle cx="516" cy="125" r="3" fill="#ff8a3d" opacity="0.70"/><circle cx="2853" cy="100" r="2" fill="#ff8a3d" opacity="0.50"/><circle cx="3091" cy="220" r="2" fill="#ff8a3d" opacity="0.75"/><circle cx="3992" cy="103" r="2.5" fill="#ff8a3d" opacity="0.68"/><circle cx="1427" cy="81" r="2" fill="#ff8a3d" opacity="0.53"/><circle cx="775" cy="106" r="1.5" fill="#ff8a3d" opacity="0.44"/><circle cx="2694" cy="66" r="2" fill="#ff8a3d" opacity="0.56"/><circle cx="607" cy="243" r="2.5" fill="#ff8a3d" opacity="0.75"/><circle cx="1781" cy="110" r="2" fill="#ff8a3d" opacity="0.41"/><circle cx="3733" cy="67" r="2.5" fill="#ff8a3d" opacity="0.46"/><circle cx="1590" cy="158" r="1.5" fill="#ff8a3d" opacity="0.36"/><circle cx="3499" cy="242" r="3" fill="#ff8a3d" opacity="0.73"/><circle cx="2049" cy="201" r="2.5" fill="#ff8a3d" opacity="0.60"/><circle cx="580" cy="105" r="3" fill="#ff8a3d" opacity="0.35"/><circle cx="992" cy="272" r="3" fill="#ff8a3d" opacity="0.74"/><circle cx="2406" cy="231" r="3" fill="#ff8a3d" opacity="0.82"/><circle cx="2735" cy="224" r="2" fill="#ff8a3d" opacity="0.72"/><circle cx="2627" cy="71" r="3" fill="#ff8a3d" opacity="0.59"/><circle cx="1064" cy="200" r="1.5" fill="#ff8a3d" opacity="0.84"/><circle cx="992" cy="240" r="3" fill="#ff8a3d" opacity="0.74"/><circle cx="2578" cy="80" r="2.5" fill="#ff8a3d" opacity="0.82"/><circle cx="1977" cy="156" r="1.5" fill="#ff8a3d" opacity="0.69"/><circle cx="1676" cy="172" r="2" fill="#ff8a3d" opacity="0.84"/><circle cx="1343" cy="239" r="1.5" fill="#ff8a3d" opacity="0.56"/><circle cx="2006" cy="272" r="1.5" fill="#ff8a3d" opacity="0.37"/><circle cx="2225" cy="95" r="2" fill="#ff8a3d" opacity="0.74"/><circle cx="3896" cy="280" r="2" fill="#ff8a3d" opacity="0.64"/><circle cx="414" cy="256" r="3" fill="#ff8a3d" opacity="0.65"/><circle cx="2938" cy="161" r="1.5" fill="#ff8a3d" opacity="0.70"/><circle cx="3395" cy="134" r="2.5" fill="#ff8a3d" opacity="0.58"/><circle cx="3882" cy="156" r="2" fill="#ff8a3d" opacity="0.89"/><circle cx="752" cy="140" r="1.5" fill="#ff8a3d" opacity="0.75"/><circle cx="2514" cy="131" r="1.5" fill="#ff8a3d" opacity="0.49"/><circle cx="1564" cy="142" r="1.5" fill="#ff8a3d" opacity="0.36"/><circle cx="1714" cy="274" r="3" fill="#ff8a3d" opacity="0.70"/><circle cx="2764" cy="130" r="2.5" fill="#ff8a3d" opacity="0.41"/><circle cx="1243" cy="229" r="3" fill="#ff8a3d" opacity="0.87"/><circle cx="2158" cy="288" r="2" fill="#ff8a3d" opacity="0.90"/><circle cx="3935" cy="140" r="3" fill="#ff8a3d" opacity="0.47"/><circle cx="529" cy="277" r="1.5" fill="#ff8a3d" opacity="0.80"/><circle cx="2598" cy="89" r="3" fill="#ff8a3d" opacity="0.70"/><circle cx="2952" cy="97" r="2" fill="#ff8a3d" opacity="0.54"/><circle cx="2616" cy="252" r="3" fill="#ff8a3d" opacity="0.61"/><circle cx="1205" cy="234" r="2" fill="#ff8a3d" opacity="0.78"/><circle cx="1922" cy="130" r="2" fill="#ff8a3d" opacity="0.50"/><circle cx="1540" cy="215" r="2.5" fill="#ff8a3d" opacity="0.89"/><circle cx="2780" cy="87" r="3" fill="#ff8a3d" opacity="0.35"/><circle cx="2956" cy="244" r="2.5" fill="#ff8a3d" opacity="0.55"/><circle cx="2680" cy="117" r="2.5" fill="#ff8a3d" opacity="0.61"/><circle cx="1755" cy="199" r="1.5" fill="#ff8a3d" opacity="0.71"/><circle cx="1484" cy="79" r="2.5" fill="#ff8a3d" opacity="0.82"/><circle cx="233" cy="61" r="2.5" fill="#ff8a3d" opacity="0.78"/><circle cx="575" cy="175" r="2.5" fill="#ff8a3d" opacity="0.70"/><circle cx="61" cy="208" r="1.5" fill="#ff8a3d" opacity="0.47"/><circle cx="294" cy="207" r="2.5" fill="#ff8a3d" opacity="0.49"/><circle cx="415" cy="188" r="2" fill="#ff8a3d" opacity="0.82"/><circle cx="760" cy="238" r="3" fill="#ff8a3d" opacity="0.54"/><circle cx="625" cy="93" r="3" fill="#ff8a3d" opacity="0.79"/><circle cx="687" cy="196" r="1.5" fill="#ff8a3d" opacity="0.72"/><circle cx="3661" cy="180" r="2.5" fill="#ff8a3d" opacity="0.46"/><circle cx="2837" cy="94" r="1.5" fill="#ff8a3d" opacity="0.76"/><circle cx="1796" cy="211" r="1.5" fill="#ff8a3d" opacity="0.66"/><circle cx="1083" cy="147" r="2" fill="#ff8a3d" opacity="0.80"/></g>
+</svg>
+  <div class="hin">
+    <h1>Что берем на <em>Годзиллу</em>?</h1>
+  </div>
+</header>
+<div class="wrap">
+
+
+  <form id="f" onsubmit="return false">
+  <section class="block">
+    <div class="bh"><span class="num">1</span><h2>Кто ты</h2></div>
+    <div class="grid" id="grid"><input class="sr" type="radio" name="who" id="w-p01" value="p01"><label class="tile" for="w-p01" data-id="p01"><span class="emo">🔩</span><span class="tx"><span class="nm">Арматур</span></span></label><input class="sr" type="radio" name="who" id="w-p02" value="p02"><label class="tile" for="w-p02" data-id="p02"><span class="emo">📀</span><span class="tx"><span class="nm">Альбом</span></span></label><input class="sr" type="radio" name="who" id="w-p03" value="p03"><label class="tile" for="w-p03" data-id="p03"><span class="emo">🍔</span><span class="tx"><span class="nm">Чин</span></span></label><input class="sr" type="radio" name="who" id="w-p04" value="p04"><label class="tile" for="w-p04" data-id="p04"><span class="emo">🏛️</span><span class="tx"><span class="nm">Аполон Montenegro</span></span></label><input class="sr" type="radio" name="who" id="w-p05" value="p05"><label class="tile" for="w-p05" data-id="p05"><span class="emo">💥</span><span class="tx"><span class="nm">Взрыв толчка</span></span></label><input class="sr" type="radio" name="who" id="w-p06" value="p06"><label class="tile" for="w-p06" data-id="p06"><span class="emo">🌀</span><span class="tx"><span class="nm">Кудрявый))</span></span></label><input class="sr" type="radio" name="who" id="w-p07" value="p07"><label class="tile" for="w-p07" data-id="p07"><span class="emo">🤠</span><span class="tx"><span class="nm">Мэтью Макконахи</span></span></label><input class="sr" type="radio" name="who" id="w-p08" value="p08"><label class="tile" for="w-p08" data-id="p08"><span class="emo">⚖️</span><span class="tx"><span class="nm">Адвокат</span></span></label><input class="sr" type="radio" name="who" id="w-p09" value="p09"><label class="tile" for="w-p09" data-id="p09"><span class="emo">🦁</span><span class="tx"><span class="nm">Соблезубый лев</span></span></label><input class="sr" type="radio" name="who" id="w-p10" value="p10"><label class="tile" for="w-p10" data-id="p10"><span class="emo">🧶</span><span class="tx"><span class="nm">«Злой черный и запутанный»</span></span></label><input class="sr" type="radio" name="who" id="w-p11" value="p11"><label class="tile" for="w-p11" data-id="p11"><span class="emo">🐂</span><span class="tx"><span class="nm">Бова</span></span></label><input class="sr" type="radio" name="who" id="w-p12" value="p12"><label class="tile" for="w-p12" data-id="p12"><span class="emo">🛏️</span><span class="tx"><span class="nm">Товарищ по койке</span></span></label><input class="sr" type="radio" name="who" id="w-p13" value="p13"><label class="tile" for="w-p13" data-id="p13"><span class="emo">⚽</span><span class="tx"><span class="nm">Ламин Ямаль</span></span></label><input class="sr" type="radio" name="who" id="w-p14" value="p14"><label class="tile" for="w-p14" data-id="p14"><span class="emo">🐣</span><span class="tx"><span class="nm">Мэтью Макконахи младший</span></span></label><input class="sr" type="radio" name="who" id="w-p15" value="p15"><label class="tile" for="w-p15" data-id="p15"><span class="emo">🦅</span><span class="tx"><span class="nm">Оджанес</span></span></label><input class="sr" type="radio" name="who" id="w-p17" value="p17"><label class="tile" for="w-p17" data-id="p17"><span class="emo">👑</span><span class="tx"><span class="nm">El Rey</span></span></label><input class="sr" type="radio" name="who" id="w-p18" value="p18"><label class="tile" for="w-p18" data-id="p18"><span class="emo">🍸</span><span class="tx"><span class="nm">Бармен</span></span></label><input class="sr" type="radio" name="who" id="w-p19" value="p19"><label class="tile" for="w-p19" data-id="p19"><span class="emo">🦖</span><span class="tx"><span class="nm">Годзилла</span></span></label></div>
+    <p class="note">Если не можешь понять, кто ты из списка - <a class="tg" href="https://t.me/Dudukchyan_V" target="_blank" rel="noopener">напиши мне в ЛС</a></p>
+  </section>
+
+  <section class="block" id="popblock">
+    <div class="bh"><span class="num">2</span><h2 id="pophead">Попкорн</h2></div>
+    <div class="pop">
+      <label class="popt"><input type="radio" name="pop" id="pop-s" value="Сладкий"><span class="pe">🍯</span><span>Сладкий</span></label>
+      <label class="popt"><input type="radio" name="pop" id="pop-c" value="Соленый"><span class="pe">🧂</span><span>Соленый</span></label>
+    </div>
+  </section>
+
+  <section class="block" id="drinks">
+    <div class="bh"><span class="num">3</span><h2 id="dh">Напиток</h2></div>
+    <div class="search"><input type="text" id="q" placeholder="Поиск: липтон, фанта, кола…" aria-label="Поиск напитка"></div>
+    <div class="cats" id="cats"><div class="cat"><h3>Кола</h3><div class="rows"><label class="row" data-drink="Coca-Cola"><input type="radio" name="drink" id="d-1" value="Coca-Cola"><span class="dot"></span><span>Coca-Cola</span></label><label class="row" data-drink="Coca-Cola Zero (без сахара)"><input type="radio" name="drink" id="d-2" value="Coca-Cola Zero (без сахара)"><span class="dot"></span><span>Coca-Cola Zero (без сахара)</span></label><label class="row" data-drink="Pepsi"><input type="radio" name="drink" id="d-3" value="Pepsi"><span class="dot"></span><span>Pepsi</span></label><label class="row" data-drink="Pepsi Zero"><input type="radio" name="drink" id="d-4" value="Pepsi Zero"><span class="dot"></span><span>Pepsi Zero</span></label></div></div><div class="cat"><h3>Газировка</h3><div class="rows"><label class="row" data-drink="Sprite"><input type="radio" name="drink" id="d-5" value="Sprite"><span class="dot"></span><span>Sprite</span></label><label class="row" data-drink="Sprite Zero"><input type="radio" name="drink" id="d-6" value="Sprite Zero"><span class="dot"></span><span>Sprite Zero</span></label><label class="row" data-drink="7UP"><input type="radio" name="drink" id="d-7" value="7UP"><span class="dot"></span><span>7UP</span></label><label class="row" data-drink="Fanta Апельсин"><input type="radio" name="drink" id="d-8" value="Fanta Апельсин"><span class="dot"></span><span>Fanta Апельсин</span></label><label class="row" data-drink="Fanta Zero"><input type="radio" name="drink" id="d-9" value="Fanta Zero"><span class="dot"></span><span>Fanta Zero</span></label><label class="row" data-drink="Mirinda"><input type="radio" name="drink" id="d-10" value="Mirinda"><span class="dot"></span><span>Mirinda</span></label><label class="row" data-drink="Mountain Dew"><input type="radio" name="drink" id="d-11" value="Mountain Dew"><span class="dot"></span><span>Mountain Dew</span></label><label class="row" data-drink="Schweppes Тоник"><input type="radio" name="drink" id="d-12" value="Schweppes Тоник"><span class="dot"></span><span>Schweppes Тоник</span></label><label class="row" data-drink="Schweppes Биттер Лемон"><input type="radio" name="drink" id="d-13" value="Schweppes Биттер Лемон"><span class="dot"></span><span>Schweppes Биттер Лемон</span></label></div></div><div class="cat"><h3>Холодный чай</h3><div class="rows"><label class="row" data-drink="Lipton Персик"><input type="radio" name="drink" id="d-14" value="Lipton Персик"><span class="dot"></span><span>Lipton Персик</span></label><label class="row" data-drink="Lipton Лимон"><input type="radio" name="drink" id="d-15" value="Lipton Лимон"><span class="dot"></span><span>Lipton Лимон</span></label><label class="row" data-drink="Lipton Зелёный"><input type="radio" name="drink" id="d-16" value="Lipton Зелёный"><span class="dot"></span><span>Lipton Зелёный</span></label><label class="row" data-drink="Fuze Tea Персик"><input type="radio" name="drink" id="d-17" value="Fuze Tea Персик"><span class="dot"></span><span>Fuze Tea Персик</span></label><label class="row" data-drink="Fuze Tea Лимон"><input type="radio" name="drink" id="d-18" value="Fuze Tea Лимон"><span class="dot"></span><span>Fuze Tea Лимон</span></label></div></div><div class="cat"><h3>Энергетики</h3><div class="rows"><label class="row" data-drink="Red Bull"><input type="radio" name="drink" id="d-19" value="Red Bull"><span class="dot"></span><span>Red Bull</span></label><label class="row" data-drink="Red Bull Sugarfree"><input type="radio" name="drink" id="d-20" value="Red Bull Sugarfree"><span class="dot"></span><span>Red Bull Sugarfree</span></label><label class="row" data-drink="Monster"><input type="radio" name="drink" id="d-21" value="Monster"><span class="dot"></span><span>Monster</span></label><label class="row" data-drink="Monster Ultra (белый)"><input type="radio" name="drink" id="d-22" value="Monster Ultra (белый)"><span class="dot"></span><span>Monster Ultra (белый)</span></label><label class="row" data-drink="Burn"><input type="radio" name="drink" id="d-23" value="Burn"><span class="dot"></span><span>Burn</span></label></div></div><div class="cat"><h3>Соки</h3><div class="rows"><label class="row" data-drink="Апельсиновый"><input type="radio" name="drink" id="d-24" value="Апельсиновый"><span class="dot"></span><span>Апельсиновый</span></label><label class="row" data-drink="Яблочный"><input type="radio" name="drink" id="d-25" value="Яблочный"><span class="dot"></span><span>Яблочный</span></label><label class="row" data-drink="Вишнёвый"><input type="radio" name="drink" id="d-26" value="Вишнёвый"><span class="dot"></span><span>Вишнёвый</span></label><label class="row" data-drink="Томатный"><input type="radio" name="drink" id="d-27" value="Томатный"><span class="dot"></span><span>Томатный</span></label><label class="row" data-drink="Мультифрукт"><input type="radio" name="drink" id="d-28" value="Мультифрукт"><span class="dot"></span><span>Мультифрукт</span></label><label class="row" data-drink="Ананасовый"><input type="radio" name="drink" id="d-29" value="Ананасовый"><span class="dot"></span><span>Ананасовый</span></label></div></div><div class="cat"><h3>Вода</h3><div class="rows"><label class="row" data-drink="Вода с газом"><input type="radio" name="drink" id="d-30" value="Вода с газом"><span class="dot"></span><span>Вода с газом</span></label><label class="row" data-drink="Вода без газа"><input type="radio" name="drink" id="d-31" value="Вода без газа"><span class="dot"></span><span>Вода без газа</span></label></div></div><div class="cat"><h3>Спортивные</h3><div class="rows"><label class="row" data-drink="Powerade"><input type="radio" name="drink" id="d-32" value="Powerade"><span class="dot"></span><span>Powerade</span></label><label class="row" data-drink="Gatorade"><input type="radio" name="drink" id="d-33" value="Gatorade"><span class="dot"></span><span>Gatorade</span></label></div></div></div>
+    <p class="note" id="nores" hidden>Ничего не нашлось. Впиши свой вариант ниже.</p>
+    <div class="ownbox">
+      <h3 class="ownh">Нет в списке? Впиши свой вариант</h3>
+      <div class="own"><input type="text" id="custom" maxlength="80" placeholder="Впиши свой вариант" aria-label="Свой вариант"><button class="btn" type="button" id="ownBtn">OK</button></div>
+    </div>
+  </section>
+  <p class="hint" id="hint" hidden></p>
+  <div class="sendbar">
+    <button class="send" type="button" id="send" disabled>Ответить</button>
+    <p class="need" id="need">Выбери себя, попкорн и напиток</p>
+  </div>
+  <div class="status" id="status" hidden aria-live="polite"></div>
+  </form>
+
+</div>
+
+<script>
+var PEOPLE=[["p01", "Арматур", "🔩"], ["p02", "Альбом", "📀"], ["p03", "Чин", "🍔"], ["p04", "Аполон Montenegro", "🏛️"], ["p05", "Взрыв толчка", "💥"], ["p06", "Кудрявый))", "🌀"], ["p07", "Мэтью Макконахи", "🤠"], ["p08", "Адвокат", "⚖️"], ["p09", "Соблезубый лев", "🦁"], ["p10", "«Злой черный и запутанный»", "🧶"], ["p11", "Бова", "🐂"], ["p12", "Товарищ по койке", "🛏️"], ["p13", "Ламин Ямаль", "⚽"], ["p14", "Мэтью Макконахи младший", "🐣"], ["p15", "Оджанес", "🦅"], ["p17", "El Rey", "👑"], ["p18", "Бармен", "🍸"], ["p19", "Годзилла", "🦖"]];
+var FORM="https://docs.google.com/forms/d/e/1FAIpQLSfnpuFsS2WW9rrKaOloNXfix7vsgmQn1PadcmpK2FGRCR9_Hg/formResponse";
+var F_WHO="entry.852025523", F_DRINK="entry.1954487593", F_POP="entry.911664623";
+var picks={}, me=null, db=null, writable=true, timer=null;
+function $(id){return document.getElementById(id);}
+function nameOf(id){for(var i=0;i<PEOPLE.length;i++) if(PEOPLE[i][0]===id) return PEOPLE[i];return null;}
+function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+function norm(v){ if(!v) return {}; if(typeof v==="string") return {drink:v}; return {drink:v.drink||"",pop:v.pop||""}; }
+function label(v){ v=norm(v); var a=[]; if(v.drink) a.push(v.drink); if(v.pop) a.push("попкорн "+v.pop.toLowerCase()); return a.join(" · "); }
+
+function renderPeople(){
+  var n=0;
+  PEOPLE.forEach(function(p){
+    var v=norm(picks[p[0]]), l=label(v);
+    if(v.drink&&v.pop) n++;
+  });
+}
+function syncChoices(){
+  var v=me?norm(picks[me]):{}, found=false;
+  document.querySelectorAll('input[name="drink"]').forEach(function(r){ r.checked=(r.value===v.drink); if(r.checked) found=true; });
+  document.querySelectorAll('input[name="pop"]').forEach(function(r){ r.checked=(r.value===v.pop); });
+  $("custom").value=(v.drink&&!found)?v.drink:"";
+
+}
+function showStatus(msg,copyText){
+  var s=$("status"); s.hidden=false; s.textContent="";
+  var m=document.createElement("span"); m.textContent=msg; s.appendChild(m);
+  if(copyText){
+    var c=document.createElement("code"); c.textContent=copyText; s.appendChild(c);
+    var b=document.createElement("button"); b.type="button"; b.className="btn ghost"; b.textContent="Скопировать";
+    b.onclick=function(){
+      function sel(){var r=document.createRange();r.selectNodeContents(c);var g=getSelection();g.removeAllRanges();g.addRange(r);}
+      try{ navigator.clipboard.writeText(copyText).then(function(){b.textContent="Скопировано";},sel); }catch(e){ sel(); }
+    };
+    s.appendChild(b);
+  }
+}
+function sendForm(who,v){
+  var body="";
+  body+=encodeURIComponent(F_WHO)+"="+encodeURIComponent(who);
+  body+="&"+encodeURIComponent(F_DRINK)+"="+encodeURIComponent(v.drink);
+  body+="&"+encodeURIComponent(F_POP)+"="+encodeURIComponent(v.pop);
+  if(window.fetch){
+    return fetch(FORM,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:body});
+  }
+  return new Promise(function(res,rej){
+    try{
+      var x=new XMLHttpRequest(); x.open("POST",FORM,true);
+      x.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
+      x.onloadend=function(){ res(); }; x.send(body);
+    }catch(e){ rej(e); }
+  });
+}
+function submitNow(){
+  if(!me) return;
+  var v=norm(picks[me]); if(!v.drink||!v.pop) return;
+  var p=nameOf(me), who=me, line=p[1]+" - "+v.drink+", попкорн "+v.pop.toLowerCase();
+  showStatus("Отправляю…");
+  var done=function(){ if(me===who){ showStatus("Ответ получил ✓"); $("status").scrollIntoView({behavior:"smooth",block:"center"}); } };
+  var fail=function(){ if(me===who) showStatus("Не получилось отправить. Скопируй и отправь мне в ЛС:",line); };
+  if(db&&writable){
+    db.doc("picks/"+who).set({drink:v.drink,pop:v.pop,updatedAt:new Date().toISOString()}).then(done,function(e){ if(e&&e.code==="invalid_argument") writable=false; fail(); });
+  } else {
+    sendForm(p[1],v).then(done,fail);
+  }
+}
+function syncSend(){
+  var v=me?norm(picks[me]):{}, miss=[];
+  if(!me) miss.push("себя"); if(!v.pop) miss.push("попкорн"); if(!v.drink) miss.push("напиток");
+  $("send").disabled=miss.length>0;
+  $("need").textContent=miss.length?("Осталось выбрать: "+miss.join(", ")):"Все выбрано - жми «Ответить»";
+}
+function update(field,val){
+  if(!me){ showStatus("Сначала нажми на себя в карточках выше."); window.scrollTo({top:0,behavior:"smooth"}); syncChoices(); return; }
+  var v=norm(picks[me]); v[field]=val; picks[me]=v;
+  var local={}; try{ local=JSON.parse(lsGet("localPicks")||"{}"); }catch(e){}
+  local[me]=v; lsSet("localPicks",JSON.stringify(local));
+  renderPeople();
+  $("status").hidden=true;
+  if(field==="pop"&&!v.drink) $("drinks").scrollIntoView({behavior:"smooth",block:"start"});
+  syncSend();
+}
+
+document.querySelectorAll('input[name="who"]').forEach(function(r){
+  r.addEventListener("change",function(){ me=r.value; lsSet("me",me); syncChoices(); syncSend(); $("status").hidden=true; $("popblock").scrollIntoView({behavior:"smooth",block:"start"}); });
+});
+document.querySelectorAll('input[name="drink"]').forEach(function(r){
+  r.addEventListener("change",function(){ if(r.checked){ $("custom").value=""; update("drink",r.value); } });
+});
+document.querySelectorAll('input[name="pop"]').forEach(function(r){
+  r.addEventListener("change",function(){ if(r.checked) update("pop",r.value); });
+});
+$("send").addEventListener("click",function(){ $("send").disabled=true; submitNow(); setTimeout(syncSend,1500); });
+$("ownBtn").addEventListener("click",function(){
+  var v=$("custom").value.trim(); if(!v) return;
+  document.querySelectorAll('input[name="drink"]').forEach(function(r){r.checked=false;});
+  update("drink",v);
+});
+$("custom").addEventListener("keydown",function(ev){ if(ev.key==="Enter"){ ev.preventDefault(); $("ownBtn").click(); } });
+$("q").addEventListener("input",function(){
+  var q=$("q").value.trim().toLowerCase(), any=false;
+  document.querySelectorAll("#cats .cat").forEach(function(c){
+    var vis=0;
+    c.querySelectorAll(".row").forEach(function(r){ var m=!q||r.getAttribute("data-drink").toLowerCase().indexOf(q)>-1; r.hidden=!m; if(m) vis++; });
+    c.hidden=!vis; if(vis) any=true;
+  });
+  $("nores").hidden=any;
+});
+
+(function(){
+  var nj=document.getElementById("nojs"); if(nj) nj.parentNode.removeChild(nj);
+  var ua=navigator.userAgent||"";
+  var ios=/iPhone|iPad|iPod/.test(ua)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+  var inApp=/Telegram|FBAN|FBAV|Instagram|VK|WhatsApp/i.test(ua)||(ios&&!/Safari\//.test(ua));
+  if(ios&&inApp&&location.protocol.indexOf("http")===0) $("safari").hidden=false;
+})();
+(function init(){
+  try{ var l=JSON.parse(lsGet("localPicks")||"{}"); for(var k in l) picks[k]=norm(l[k]); }catch(e){}
+  var saved=lsGet("me");
+  if(saved&&nameOf(saved)){ me=saved; var r=$("w-"+saved); if(r) r.checked=true; }
+  else { document.querySelectorAll('input[name="who"]').forEach(function(r){r.checked=false;}); }
+  renderPeople(); syncChoices(); syncSend();
+})();
+
+(async function(){
+  if(!(window.claude&&window.claude.use)) return;
+  try{ var u=await window.claude.use("user"); if(u){ var can=await u.can("data.write"); if(can===false) writable=false; } }catch(e){}
+  try{ db=await window.claude.use("db"); }catch(e){ db=null; }
+  if(!db) return;
+  db.collection("picks").onSnapshot(function(snap){
+    var fresh={};
+    snap.docs.forEach(function(d){ var v=d.data(); if(v&&v.drink) fresh[d.id]=norm(v); });
+    try{ var l=JSON.parse(lsGet("localPicks")||"{}"); for(var k in l) if(!fresh[k]) fresh[k]=norm(l[k]); }catch(e){}
+    picks=fresh; renderPeople(); syncChoices(); syncSend();
+  },function(){});
+})();
+</script>
+
+</body>
+</html>
