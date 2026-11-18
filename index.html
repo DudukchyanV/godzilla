@@ -138,6 +138,16 @@ body{background:radial-gradient(120% 60% at 50% 0%,#2a080c 0%,var(--bg) 70%) fix
 .pzt2:has(input:checked)::after{content:"✓";position:absolute;top:8px;right:10px;font-weight:700}
 .pzt2:has(input:focus-visible){outline:2px solid var(--fg);outline-offset:2px}
 .pzt2:active{transform:scale(.98)}
+#seats{margin-top:8px}
+.hallwrap{display:flex;flex-direction:column;gap:14px}
+.screen{height:26px;border-radius:50% 50% 0 0/100% 100% 0 0;background:linear-gradient(180deg,var(--accent),rgba(224,50,60,0));color:#fff;font-size:11px;letter-spacing:.2em;text-transform:uppercase;text-align:center;padding-top:5px;margin-inline:6%}
+.hall{display:grid;grid-template-columns:16px repeat(13,minmax(0,1fr));gap:4px;align-items:center}
+.rl,.cl{font-size:10px;color:var(--muted);text-align:center;font-variant-numeric:tabular-nums}
+.st{aspect-ratio:1/1;border-radius:50%;background:rgba(255,255,255,.06);display:grid;place-items:center;font-size:clamp(12px,3.6vw,20px);line-height:1}
+.st.on{background:var(--surface-2);border:1px solid var(--line)}
+.st.me{background:var(--accent);border-color:var(--accent);box-shadow:0 0 0 3px rgba(224,50,60,.35)}
+.mine{margin:0;font-weight:700;color:var(--fg)}
+.mine b{color:var(--accent)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -206,6 +216,15 @@ body{background:radial-gradient(120% 60% at 50% 0%,#2a080c 0%,var(--bg) 70%) fix
   </div>
   <div class="status" id="status" hidden aria-live="polite"></div>
   </form>
+
+  <section class="block" id="seats">
+    <div class="bh"><h2>Рассадка</h2><span class="bnote" style="margin-left:0">ряды 1-9, места справа налево</span></div>
+    <p class="mine" id="mine" hidden></p>
+    <div class="hallwrap">
+      <div class="screen">экран</div>
+      <div class="hall"><span class="rl">1</span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="rl">2</span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="rl">3</span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="rl">4</span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st on" data-id="p08" title="Ряд 4, место 8">⚖️</span><span class="st on" data-id="p07" title="Ряд 4, место 7">🤠</span><span class="st"></span><span class="st on" data-id="p14" title="Ряд 4, место 5">😎</span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="rl">5</span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st on" data-id="p13" title="Ряд 5, место 9">⚽</span><span class="st"></span><span class="st on" data-id="p04" title="Ряд 5, место 7">🏛️</span><span class="st on" data-id="p11" title="Ряд 5, место 6">🐂</span><span class="st"></span><span class="st on" data-id="p10" title="Ряд 5, место 4">🧶</span><span class="st"></span><span class="st"></span><span class="st"></span><span class="rl">6</span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st on" data-id="p20" title="Ряд 6, место 10">🇯🇵</span><span class="st"></span><span class="st on" data-id="p03" title="Ряд 6, место 8">🍔</span><span class="st on" data-id="p02" title="Ряд 6, место 7">📀</span><span class="st"></span><span class="st on" data-id="p18" title="Ряд 6, место 5">🍸</span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="rl">7</span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st on" data-id="p06" title="Ряд 7, место 9">🌀</span><span class="st"></span><span class="st on" data-id="p19" title="Ряд 7, место 7">🦖</span><span class="st on" data-id="p12" title="Ряд 7, место 6">🛏️</span><span class="st"></span><span class="st on" data-id="p17" title="Ряд 7, место 4">👑</span><span class="st"></span><span class="st"></span><span class="st"></span><span class="rl">8</span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st on" data-id="p15" title="Ряд 8, место 10">🦅</span><span class="st"></span><span class="st on" data-id="p01" title="Ряд 8, место 8">🔩</span><span class="st on" data-id="p09" title="Ряд 8, место 7">🦁</span><span class="st"></span><span class="st on" data-id="p05" title="Ряд 8, место 5">🧁</span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="rl">9</span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="st"></span><span class="rl"></span><span class="cl">13</span><span class="cl">12</span><span class="cl">11</span><span class="cl">10</span><span class="cl">9</span><span class="cl">8</span><span class="cl">7</span><span class="cl">6</span><span class="cl">5</span><span class="cl">4</span><span class="cl">3</span><span class="cl">2</span><span class="cl">1</span></div>
+    </div>
+  </section>
 
 </div>
 
@@ -279,6 +298,12 @@ function submitNow(){
     sendForm(p[1],v).then(done,fail);
   }
 }
+var SEATS={"p14": [4, 5], "p07": [4, 7], "p08": [4, 8], "p10": [5, 4], "p11": [5, 6], "p04": [5, 7], "p13": [5, 9], "p18": [6, 5], "p02": [6, 7], "p03": [6, 8], "p20": [6, 10], "p17": [7, 4], "p12": [7, 6], "p19": [7, 7], "p06": [7, 9], "p05": [8, 5], "p09": [8, 7], "p01": [8, 8], "p15": [8, 10]};
+function syncSeat(){
+  document.querySelectorAll(".st.on").forEach(function(x){ x.classList.toggle("me", !!me && x.getAttribute("data-id")===me); });
+  var m=$("mine"), st=me?SEATS[me]:null;
+  if(st){ m.hidden=false; m.innerHTML="Твое место: <b>ряд "+st[0]+", место "+st[1]+"</b>"; } else m.hidden=true;
+}
 function syncSend(){
   var v=me?norm(picks[me]):{}, miss=[];
   if(!me) miss.push("себя"); if(!v.pop) miss.push("попкорн"); if(!(v.pizza&&v.pizza.length)) miss.push("хотя бы одну пиццу"); if(!v.drink) miss.push("напиток");
@@ -297,7 +322,7 @@ function update(field,val){
 }
 
 document.querySelectorAll('input[name="who"]').forEach(function(r){
-  r.addEventListener("change",function(){ me=r.value; lsSet("me",me); syncChoices(); syncSend(); $("status").hidden=true; $("popblock").scrollIntoView({behavior:"smooth",block:"start"}); });
+  r.addEventListener("change",function(){ me=r.value; lsSet("me",me); syncChoices(); syncSend(); syncSeat(); $("status").hidden=true; $("popblock").scrollIntoView({behavior:"smooth",block:"start"}); });
 });
 document.querySelectorAll('input[name="drink"]').forEach(function(r){
   r.addEventListener("change",function(){ if(r.checked){ $("custom").value=""; update("drink",r.value); } });
@@ -340,7 +365,7 @@ $("q").addEventListener("input",function(){
   var saved=lsGet("me");
   if(saved&&nameOf(saved)){ me=saved; var r=$("w-"+saved); if(r) r.checked=true; }
   else { document.querySelectorAll('input[name="who"]').forEach(function(r){r.checked=false;}); }
-  renderPeople(); syncChoices(); syncSend();
+  renderPeople(); syncChoices(); syncSend(); syncSeat();
 })();
 
 (async function(){
